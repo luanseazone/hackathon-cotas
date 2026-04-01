@@ -64,3 +64,10 @@ def test_premium_caracteristicas_vista_mar():
     res_com = calcular_cenarios(BASE_COTA, selic_aa=13.75)
     res_sem = calcular_cenarios(cota_sem_view, selic_aa=13.75)
     assert res_com["cenario_otimista"]["preco"] > res_sem["cenario_otimista"]["preco"]
+
+
+def test_imposto_reduz_valor_liquido():
+    cota_com_imposto = BASE_COTA.model_copy(update={"imposto_pct": 0.15})
+    res_sem = calcular_cenarios(BASE_COTA, selic_aa=13.75)
+    res_com = calcular_cenarios(cota_com_imposto, selic_aa=13.75)
+    assert res_com["cenario_justo"]["valor_liquido"] < res_sem["cenario_justo"]["valor_liquido"]

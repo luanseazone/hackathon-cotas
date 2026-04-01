@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import math
 
@@ -10,23 +10,23 @@ class CotaData(BaseModel):
     area: float
     andar: Optional[str] = None
     tipologia: str = "padrao"
-    valor_pago: float
-    saldo_devedor: float
-    participacao_pct: float = 100.0
+    valor_pago: float = Field(gt=0)
+    saldo_devedor: float = Field(ge=0)
+    participacao_pct: float = Field(default=100.0, gt=0, le=100)
     vista_mar: bool = False
     garden: bool = False
     sacada: bool = False
     posicao_solar: Optional[str] = None
     capacidade: Optional[int] = None
     data_assinatura: str
-    imposto_pct: float = 0.0
+    imposto_pct: float = Field(default=0.0, ge=0.0, le=1.0, description="Alíquota de imposto como fração decimal (0.0 a 1.0, ex: 0.15 para 15%)")
 
 
 COMISSAO_SZN = 0.06
 
 
 def _calcular_cenario(
-    cota: CotaData, preco_venda: float, selic_aa: float
+    cota: CotaData, preco_venda: float
 ) -> dict:
     valor_entrada = preco_venda - cota.saldo_devedor
     comissao_szn = COMISSAO_SZN * preco_venda
@@ -71,13 +71,17 @@ def calcular_cenarios(
     premium = _premium_caracteristicas(cota)
 
     preco_conservador = math.ceil((preco_minimo + cota.valor_pago * margem_conservadora) / 1000) * 1000
-    preco_justo = preco_sugerido or (math.ceil((preco_minimo + cota.valor_pago * margem_justa) / 1000) * 1000)
+    preco_justo = (
+        preco_sugerido
+        if preco_sugerido is not None
+        else math.ceil((preco_minimo + cota.valor_pago * margem_justa) / 1000) * 1000
+    )
     preco_otimista = math.ceil((preco_minimo + cota.valor_pago * (margem_otimista + premium)) / 1000) * 1000
 
     return {
         "preco_minimo": round(preco_minimo, 2),
         "valor_aquisicao": round(valor_aquisicao, 2),
-        "cenario_conservador": _calcular_cenario(cota, preco_conservador, selic_aa),
-        "cenario_justo": _calcular_cenario(cota, preco_justo, selic_aa),
-        "cenario_otimista": _calcular_cenario(cota, preco_otimista, selic_aa),
+        "cenario_conservador": _calcular_cenario(cota, preco_conservador),
+        "cenario_justo": _calcular_cenario(cota, preco_justo),
+        "cenario_otimista": _calcular_cenario(cota, preco_otimista),
     }
