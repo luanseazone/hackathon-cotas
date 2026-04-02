@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from agent import run_agent
+from tools.comparables import get_empreendimentos, get_unidades_by_empreendimento
 
 _HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "index.html")
 
@@ -48,6 +49,16 @@ async def config():
         "supabase_url": os.getenv("SUPABASE_URL", ""),
         "supabase_service_key": os.getenv("SUPABASE_SERVICE_KEY", ""),
     }
+
+
+@app.get("/empreendimentos")
+async def empreendimentos():
+    return await get_empreendimentos()
+
+
+@app.get("/unidades/{empreendimento_id}")
+async def unidades(empreendimento_id: int):
+    return await get_unidades_by_empreendimento(empreendimento_id)
 
 
 @app.post("/price-agent")
