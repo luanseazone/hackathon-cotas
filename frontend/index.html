@@ -9,182 +9,160 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     .prose h1,.prose h2,.prose h3{font-weight:700;margin:.75em 0 .25em}
     .prose h2{font-size:1.1em;color:#1e40af}
+    .prose h3{font-size:1em;color:#374151}
     .prose p{margin:.4em 0}
     .prose ul{list-style:disc;padding-left:1.25em;margin:.4em 0}
+    .prose ol{list-style:decimal;padding-left:1.25em;margin:.4em 0}
     .prose strong{font-weight:600}
-    .prose code{background:#f3f4f6;padding:0.1em 0.3em;border-radius:3px;font-size:.9em}
+    .prose code{background:#f3f4f6;padding:.1em .3em;border-radius:3px;font-size:.9em}
+    .prose table{width:100%;border-collapse:collapse;margin:.5em 0;font-size:.85em}
+    .prose th{background:#f9fafb;padding:.4em .6em;text-align:left;border:1px solid #e5e7eb;font-weight:600}
+    .prose td{padding:.4em .6em;border:1px solid #e5e7eb}
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
-const { createClient } = supabase;
 
 const API_URL = "http://localhost:8000";
-let sb = null;
 
 const fmt = (v) => v != null ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
 const fmtPct = (v) => v != null ? `${Number(v).toFixed(1)}%` : "—";
-const fmtCpf = (v) => {
-  const d = v.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
-  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
-  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+
+// ─── CotaForm ─────────────────────────────────────────────────────────────────
+const DEMO = {
+  empreendimento_id: 1,
+  empreendimento: "Seazone Resort Floripa",
+  codigo: "209",
+  area: 58.84,
+  andar: "2",
+  tipologia: "garden",
+  valor_pago: 100000,
+  saldo_devedor: 100000,
+  participacao_pct: 100,
+  vista_mar: true,
+  garden: true,
+  sacada: false,
+  posicao_solar: "nascente",
+  capacidade: 4,
+  data_assinatura: "2022-03-15",
+  imposto_pct: 0.15,
 };
 
-// ─── Login ─────────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin }) {
-  const [cpf, setCpf] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+function CotaForm({ onStart }) {
+  const [form, setForm] = useState(DEMO);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-    const digits = cpf.replace(/\D/g, "");
-    const email = `${digits}@seazone.internal`;
-    const password = digits.slice(0, 8);
-    try {
-      const { data, error: err } = await sb.auth.signInWithPassword({ email, password });
-      if (err) throw err;
-      onLogin(data.session);
-    } catch {
-      setError("CPF ou senha inválidos.");
-    } finally {
-      setLoading(false);
-    }
+    onStart({
+      ...form,
+      area: parseFloat(form.area) || 0,
+      valor_pago: parseFloat(form.valor_pago) || 0,
+      saldo_devedor: parseFloat(form.saldo_devedor) || 0,
+      participacao_pct: parseFloat(form.participacao_pct) || 100,
+      imposto_pct: parseFloat(form.imposto_pct) || 0,
+    });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🏖️</div>
-          <h1 className="text-2xl font-bold text-gray-800">Farol Pricing</h1>
-          <p className="text-gray-400 text-sm mt-1">Seazone — Marketplace de Cotas</p>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-            <input
-              type="text"
-              value={cpf}
-              onChange={(e) => setCpf(fmtCpf(e.target.value))}
-              placeholder="000.000.000-00"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-blue-800 flex items-center justify-center p-6">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-8 py-6 text-white">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🏖️</span>
+            <div>
+              <h1 className="text-xl font-bold">Farol Pricing</h1>
+              <p className="text-blue-200 text-sm">Agente de precificação de cotas imobiliárias</p>
+            </div>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
-          >
-            {loading ? "Entrando..." : "Entrar"}
+        </div>
+
+        <form onSubmit={submit} className="p-8">
+          <p className="text-sm text-gray-500 mb-6">Preencha os dados da cota para iniciar a análise de precificação.</p>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Empreendimento</label>
+              <input type="text" value={form.empreendimento} onChange={e => set("empreendimento", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Código da Unidade</label>
+              <input type="text" value={form.codigo} onChange={e => set("codigo", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Área (m²)</label>
+              <input type="number" step="0.01" value={form.area} onChange={e => set("area", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Valor Pago (R$)</label>
+              <input type="number" step="1000" value={form.valor_pago} onChange={e => set("valor_pago", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Saldo Devedor (R$)</label>
+              <input type="number" step="1000" value={form.saldo_devedor} onChange={e => set("saldo_devedor", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tipologia</label>
+              <select value={form.tipologia} onChange={e => set("tipologia", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="padrao">Padrão</option>
+                <option value="garden">Garden</option>
+                <option value="mezanino">Mezanino</option>
+                <option value="cobertura">Cobertura</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Posição Solar</label>
+              <select value={form.posicao_solar || ""} onChange={e => set("posicao_solar", e.target.value || null)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">— nenhuma —</option>
+                <option value="nascente">Nascente</option>
+                <option value="poente">Poente</option>
+                <option value="norte">Norte</option>
+                <option value="sul">Sul</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Alíquota IR (%)</label>
+              <input type="number" step="0.01" min="0" max="100" value={(form.imposto_pct * 100).toFixed(0)}
+                onChange={e => set("imposto_pct", parseFloat(e.target.value) / 100 || 0)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <div className="flex gap-6 mb-6">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={form.vista_mar} onChange={e => set("vista_mar", e.target.checked)}
+                className="w-4 h-4 rounded accent-blue-600" />
+              🌊 Vista Mar
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={form.garden} onChange={e => set("garden", e.target.checked)}
+                className="w-4 h-4 rounded accent-blue-600" />
+              🌿 Garden
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={form.sacada} onChange={e => set("sacada", e.target.checked)}
+                className="w-4 h-4 rounded accent-blue-600" />
+              🏗️ Sacada
+            </label>
+          </div>
+
+          <button type="submit"
+            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 rounded-xl transition text-sm">
+            Iniciar análise de precificação →
           </button>
         </form>
-        <p className="text-center text-gray-400 text-xs mt-6">Senha: primeiros 8 dígitos do CPF</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── CotaCard ────────────────────────────────────────────────────────────────
-function CotaCard({ cota, onClick }) {
-  const u = cota.unidades || {};
-  const e = Array.isArray(u.empreendimentos) ? u.empreendimentos[0] : (u.empreendimentos || {});
-  const descArr = u.descricao_unidades;
-  const d = Array.isArray(descArr) ? (descArr[0] || {}) : (descArr || {});
-  const rfArr = u.resumo_financeiro;
-  const rf = Array.isArray(rfArr) ? (rfArr[0] || {}) : (rfArr || {});
-  const tags = [
-    d.vista_mar && "🌊 Vista Mar",
-    d.garden && "🌿 Garden",
-    d.sacada_terraco && "🏗️ Sacada",
-    d.posicao_solar && `☀️ ${d.posicao_solar}`,
-    d.capacidade && `👥 ${d.capacidade} hósp.`,
-  ].filter(Boolean);
-
-  return (
-    <button
-      onClick={onClick}
-      className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-left hover:border-blue-400 hover:shadow-md transition w-full"
-    >
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <p className="font-semibold text-gray-800">{e.nome || "—"}</p>
-          <p className="text-sm text-gray-400">{e.cidade}{e.estado ? `, ${e.estado}` : ""}</p>
-        </div>
-        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">
-          Unid. {u.codigo}
-        </span>
-      </div>
-      <div className="flex gap-3 text-sm text-gray-600 mb-3">
-        <span>📐 {u.area}m²</span>
-        {u.andar && <span>🏢 {u.andar}º</span>}
-        <span>👤 {cota.participacao}%</span>
-      </div>
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {tags.map((t) => <span key={t} className="bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full border border-emerald-100">{t}</span>)}
-        </div>
-      )}
-      <div className="flex gap-4 text-xs text-gray-400 border-t pt-3 mt-1">
-        <span>Pago: <strong className="text-gray-600">{fmt(rf.valor_pago)}</strong></span>
-        <span>Saldo: <strong className="text-gray-600">{fmt(rf.valor_pendente)}</strong></span>
-      </div>
-    </button>
-  );
-}
-
-// ─── CotaSelector ─────────────────────────────────────────────────────────────
-function CotaSelector({ onSelect, onLogout }) {
-  const [cotas, setCotas] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    sb.from("contratos")
-      .select(`id, participacao, data_assinatura, status,
-        unidades (
-          id, codigo, area, andar, tipologia,
-          empreendimentos ( id, nome, cidade, estado ),
-          descricao_unidades ( vista_mar, garden, sacada_terraco, posicao_solar, capacidade ),
-          resumo_financeiro ( valor_pago, valor_pendente )
-        )`)
-      .eq("status", "ativo")
-      .then(({ data }) => { setCotas(data || []); setLoading(false); });
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b shadow-sm px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🏖️</span>
-          <div>
-            <h1 className="font-bold text-gray-800">Farol Pricing</h1>
-            <p className="text-xs text-gray-400">Selecione a cota para precificar</p>
-          </div>
-        </div>
-        <button onClick={onLogout} className="text-sm text-gray-400 hover:text-gray-600">Sair</button>
-      </div>
-      <div className="max-w-4xl mx-auto p-6">
-        {loading ? (
-          <p className="text-center text-gray-400 mt-16">Carregando suas cotas...</p>
-        ) : cotas.length === 0 ? (
-          <p className="text-center text-gray-400 mt-16">Nenhuma cota ativa encontrada.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {cotas.map((c) => <CotaCard key={c.id} cota={c} onClick={() => onSelect(c)} />)}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -202,7 +180,8 @@ function ScenariosCard({ calculos }) {
     <div className="mt-4">
       <p className="text-xs text-gray-500 mb-2">
         Break-even: <strong className="text-gray-700">{fmt(calculos.preco_minimo)}</strong>
-        <span className="ml-3">Aquisição total: <strong className="text-gray-700">{fmt(calculos.valor_aquisicao)}</strong></span>
+        <span className="mx-2">·</span>
+        Aquisição total: <strong className="text-gray-700">{fmt(calculos.valor_aquisicao)}</strong>
       </p>
       <div className="grid grid-cols-3 gap-3">
         {cols.map(({ key, label, bg, border, text }) => {
@@ -238,7 +217,7 @@ function ScenariosCard({ calculos }) {
 // ─── ToolCallsTrace ────────────────────────────────────────────────────────────
 const TOOL_INFO = {
   get_economic_indicators: { icon: "📊", label: "Indicadores BCB" },
-  get_cub_history:         { icon: "🏗️", label: "CUB Histórico" },
+  get_cub_history:         { icon: "🏗️", label: "CUB histórico" },
   get_comparable_units:    { icon: "🏘️", label: "Comparáveis" },
   calculate_scenarios:     { icon: "🧮", label: "Cenários" },
 };
@@ -265,30 +244,28 @@ function ComparablesTable({ comparaveis }) {
   return (
     <div className="mt-4 border-t pt-3">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Unidades comparáveis</p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-gray-600">
-          <thead>
-            <tr className="border-b border-gray-100 text-gray-400">
-              <th className="text-left pb-1 pr-3">Unidade</th>
-              <th className="text-left pb-1 pr-3">Área</th>
-              <th className="text-left pb-1 pr-3">Tipologia</th>
-              <th className="text-right pb-1 pr-3">Net Revenue</th>
-              <th className="text-left pb-1">Status</th>
+      <table className="w-full text-xs text-gray-600">
+        <thead>
+          <tr className="border-b border-gray-100 text-gray-400">
+            <th className="text-left pb-1 pr-3">Unidade</th>
+            <th className="text-left pb-1 pr-3">Área</th>
+            <th className="text-left pb-1 pr-3">Tipologia</th>
+            <th className="text-right pb-1 pr-3">Net Revenue</th>
+            <th className="text-left pb-1">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comparaveis.slice(0, 6).map((c, i) => (
+            <tr key={i} className="border-b border-gray-50">
+              <td className="py-1 pr-3 font-semibold">{c.codigo ?? "—"}</td>
+              <td className="py-1 pr-3">{c.area != null ? `${c.area}m²` : "—"}</td>
+              <td className="py-1 pr-3">{c.tipologia ?? "—"}</td>
+              <td className="py-1 pr-3 text-right">{c.net_revenue != null ? fmt(c.net_revenue) : "—"}</td>
+              <td className="py-1">{c.status ?? "—"}</td>
             </tr>
-          </thead>
-          <tbody>
-            {comparaveis.slice(0, 6).map((c, i) => (
-              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-1 pr-3 font-semibold">{c.codigo ?? "—"}</td>
-                <td className="py-1 pr-3">{c.area != null ? `${c.area}m²` : "—"}</td>
-                <td className="py-1 pr-3">{c.tipologia ?? "—"}</td>
-                <td className="py-1 pr-3 text-right">{c.net_revenue != null ? fmt(c.net_revenue) : "—"}</td>
-                <td className="py-1">{c.status ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -299,32 +276,6 @@ function PricingChat({ cota, onBack }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const endRef = useRef(null);
-
-  const u = cota.unidades || {};
-  const e = Array.isArray(u.empreendimentos) ? u.empreendimentos[0] : (u.empreendimentos || {});
-  const descArr = u.descricao_unidades;
-  const d = Array.isArray(descArr) ? (descArr[0] || {}) : (descArr || {});
-  const rfArr = u.resumo_financeiro;
-  const rf = Array.isArray(rfArr) ? (rfArr[0] || {}) : (rfArr || {});
-
-  const cotaPayload = {
-    empreendimento_id: e.id,
-    empreendimento: e.nome || "—",
-    codigo: u.codigo || "—",
-    area: parseFloat(u.area) || 0,
-    andar: u.andar?.toString(),
-    tipologia: u.tipologia || "padrao",
-    valor_pago: parseFloat(rf.valor_pago) || 0,
-    saldo_devedor: parseFloat(rf.valor_pendente) || 0,
-    participacao_pct: parseFloat(cota.participacao) || 100,
-    vista_mar: !!d.vista_mar,
-    garden: !!d.garden,
-    sacada: !!d.sacada_terraco,
-    posicao_solar: d.posicao_solar || null,
-    capacidade: d.capacidade || null,
-    data_assinatura: cota.data_assinatura || "2020-01-01",
-    imposto_pct: 0.15,
-  };
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -337,26 +288,19 @@ function PricingChat({ cota, onBack }) {
     setInput("");
     setLoading(true);
 
-    // Envia apenas o histórico de texto (user/assistant strings)
-    const historyForApi = newMsgs.map((m) => ({ role: m.role, content: m.content }));
-
     try {
       const resp = await fetch(`${API_URL}/api/price-agent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cota: cotaPayload, messages: historyForApi }),
+        body: JSON.stringify({
+          cota,
+          messages: newMsgs.map(m => ({ role: m.role, content: m.content })),
+        }),
       });
       const data = await resp.json();
-      setMessages((prev) => [...prev, {
-        role: "assistant",
-        content: data.message || "Sem resposta.",
-        meta: data,
-      }]);
+      setMessages(prev => [...prev, { role: "assistant", content: data.message || "Sem resposta.", meta: data }]);
     } catch {
-      setMessages((prev) => [...prev, {
-        role: "assistant",
-        content: "⚠️ Erro ao conectar com a API. Verifique se o backend está rodando.",
-      }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Erro ao conectar com a API." }]);
     } finally {
       setLoading(false);
     }
@@ -364,22 +308,25 @@ function PricingChat({ cota, onBack }) {
 
   const suggestions = [
     "Qual o melhor preço para vender agora?",
+    "Mostre a análise completa",
     "Compare com o rendimento da Selic",
-    "O que impacta mais o preço da minha cota?",
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-6 py-4 flex items-center gap-4">
-        <button onClick={onBack} className="text-gray-400 hover:text-gray-700 text-xl">←</button>
-        <div className="flex-1">
-          <p className="font-semibold text-gray-800">{e.nome} — Unid. {u.codigo}</p>
+        <button onClick={onBack} className="text-gray-400 hover:text-gray-700 text-xl leading-none">←</button>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-800 truncate">{cota.empreendimento} — Unid. {cota.codigo}</p>
           <p className="text-xs text-gray-400">
-            {u.area}m² · {u.tipologia} · Pago: {fmt(rf.valor_pago)} · Saldo: {fmt(rf.valor_pendente)}
+            {cota.area}m² · {cota.tipologia}
+            {cota.vista_mar && " · 🌊 Vista Mar"}
+            {cota.garden && " · 🌿 Garden"}
+            · Pago: {fmt(cota.valor_pago)} · Saldo: {fmt(cota.saldo_devedor)}
           </p>
         </div>
-        <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full hidden sm:inline">
+        <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full shrink-0">
           🤖 Farol Pricing
         </span>
       </div>
@@ -391,16 +338,13 @@ function PricingChat({ cota, onBack }) {
             <div className="text-center py-16">
               <div className="text-5xl mb-4">🏖️</div>
               <p className="text-lg font-semibold text-gray-700">Olá! Sou o Farol Pricing.</p>
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-sm text-gray-400 mt-2 max-w-sm mx-auto">
                 Analiso indicadores econômicos, comparo unidades e calculo cenários de preço em tempo real.
               </p>
               <div className="mt-6 flex flex-wrap gap-2 justify-center">
-                {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => send(s)}
-                    className="bg-white border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-full hover:border-blue-400 hover:text-blue-700 transition shadow-sm"
-                  >
+                {suggestions.map(s => (
+                  <button key={s} onClick={() => send(s)}
+                    className="bg-white border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-full hover:border-blue-400 hover:text-blue-700 transition shadow-sm">
                     {s}
                   </button>
                 ))}
@@ -417,10 +361,8 @@ function PricingChat({ cota, onBack }) {
               ) : (
                 <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm p-5 shadow-sm">
                   <ToolCallsTrace tools={m.meta?.tool_calls_made} />
-                  <div
-                    className="prose text-gray-800 text-sm"
-                    dangerouslySetInnerHTML={{ __html: marked.parse(m.content || "") }}
-                  />
+                  <div className="prose text-gray-800 text-sm"
+                    dangerouslySetInnerHTML={{ __html: marked.parse(m.content || "") }} />
                   <ScenariosCard calculos={m.meta?.calculos} />
                   <ComparablesTable comparaveis={m.meta?.comparaveis} />
                   {m.meta?.indicadores && (
@@ -455,20 +397,14 @@ function PricingChat({ cota, onBack }) {
       {/* Input */}
       <div className="bg-white border-t px-4 py-4 shadow-sm">
         <div className="max-w-3xl mx-auto flex gap-3">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
+          <input type="text" value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send(input)}
             placeholder="Pergunte sobre o preço da sua cota..."
             disabled={loading}
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-gray-50"
-          />
-          <button
-            onClick={() => send(input)}
-            disabled={loading || !input.trim()}
-            className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-3 rounded-xl font-semibold text-sm transition disabled:opacity-40"
-          >
+            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-gray-50" />
+          <button onClick={() => send(input)} disabled={loading || !input.trim()}
+            className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-3 rounded-xl font-semibold text-sm transition disabled:opacity-40">
             Enviar
           </button>
         </div>
@@ -479,48 +415,10 @@ function PricingChat({ cota, onBack }) {
 
 // ─── App ────────────────────────────────────────────────────────────────────
 function App() {
-  const [config, setConfig] = useState(null);
-  const [session, setSession] = useState(null);
-  const [selectedCota, setSelectedCota] = useState(null);
-  const [configError, setConfigError] = useState(false);
-
-  useEffect(() => {
-    fetch(`${API_URL}/config`)
-      .then((r) => r.json())
-      .then((cfg) => {
-        sb = createClient(cfg.supabase_url, cfg.supabase_anon_key);
-        setConfig(cfg);
-        sb.auth.getSession().then(({ data }) => setSession(data.session));
-        sb.auth.onAuthStateChange((_, s) => setSession(s));
-      })
-      .catch(() => setConfigError(true));
-  }, []);
-
-  const logout = async () => {
-    await sb.auth.signOut();
-    setSession(null);
-    setSelectedCota(null);
-  };
-
-  if (configError) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="text-5xl mb-4">⚠️</div>
-        <p className="font-semibold text-gray-700">API não encontrada</p>
-        <p className="text-sm text-gray-400 mt-2">Backend deve estar em <code>{API_URL}</code></p>
-      </div>
-    </div>
-  );
-
-  if (!config) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <p className="text-gray-400 text-sm animate-pulse">Conectando...</p>
-    </div>
-  );
-
-  if (!session) return <LoginScreen onLogin={(s) => setSession(s)} />;
-  if (!selectedCota) return <CotaSelector onSelect={setSelectedCota} onLogout={logout} />;
-  return <PricingChat cota={selectedCota} onBack={() => setSelectedCota(null)} />;
+  const [cota, setCota] = useState(null);
+  return cota
+    ? <PricingChat cota={cota} onBack={() => setCota(null)} />
+    : <CotaForm onStart={setCota} />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
