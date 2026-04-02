@@ -21,11 +21,13 @@ async def _metabase_query(sql: str) -> list[dict]:
 
 
 async def get_comparable_units(
-    empreendimento_id: int,
+    empreendimento_id: int | None,
     tipologia: str,
     area_min: float,
     area_max: float,
 ) -> list[dict]:
+    if not empreendimento_id:
+        return []
     # Busca unidades similares: mesmo empreendimento, tipologia e faixa de área.
     # Fallback: abre para qualquer unidade do mesmo empreendimento se não encontrar.
     sql = f"""

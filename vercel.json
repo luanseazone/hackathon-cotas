@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "api/main.py": {
+      "maxDuration": 60,
+      "includeFiles": "../frontend/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/main" }
+  ]
+}

@@ -4,7 +4,7 @@ import math
 
 
 class CotaData(BaseModel):
-    empreendimento_id: int
+    empreendimento_id: Optional[int] = None
     empreendimento: str
     codigo: str
     area: float

@@ -22,3 +22,9 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+.vercel
+
+# Scripts com credenciais hardcoded
+seed_*.py
+setup_supabase.py
+supabase/.temp/
